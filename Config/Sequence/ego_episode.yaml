@@ -1,0 +1,64 @@
+# Native MAC-VO Performant FP32 recipe; raw geometry is filled from calibration.
+Common:
+  device: cuda
+Odometry:
+  name: Headset-Raw-Offline
+  args:
+    device: cuda
+    edgewidth: 32
+    num_point: 200
+    match_cov_default: 0.25
+    profile: false
+    mapping: false
+  cov:
+    obs:
+      type: MatchCovariance
+      args:
+        device: cuda
+        kernel_size: 31
+        match_cov_default: 0.25
+        min_depth_cov: 0.05
+        min_flow_cov: 0.25
+  keypoint:
+    type: CovAwareSelector_NoDepth
+    args:
+      device: cuda
+      kernel_size: 7
+      mask_width: 32
+      max_match_cov: 100.0
+  mappoint:
+    type: MappingPointSelector
+    args:
+      device: cuda
+      max_depth: 5.0
+      max_depth_cov: 0.005
+      mask_width: 32
+  frontend:
+    type: CUDAGraph_FlowFormerCovFrontend
+    args:
+      device: cuda
+      weight: Model/MACVO_FrontendCov.pth
+      enc_dtype: fp32
+      dec_dtype: fp32
+      decoder_depth: 12
+      enforce_positive_disparity: false
+  motion:
+    type: StaticMotionModel
+    args: null
+  outlier:
+    type: CovarianceSanityFilter
+    args: null
+  postprocess:
+    type: MotionInterpolate
+    args: null
+  keyframe:
+    type: AllKeyframe
+    args: null
+  optimizer:
+    type: TwoFrame_PGO
+    args:
+      device: cpu
+      vectorize: true
+      parallel: true
+      graph_type: disp
+      autodiff: false
